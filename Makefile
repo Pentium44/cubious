@@ -9,13 +9,23 @@ run: all
 clean:
 	rm *.o $(EXE)
 
-main: compile
+main: sqlite3.o main.o util.o noise.o map.o db.o
 	gcc $(FLAGS) main.o util.o noise.o map.o db.o sqlite3.o -o $(EXE) $(LIBRARY) -lglfw -lGLEW -lGL -lGLU -lm -lpthread -ldl
 
-compile: src/main.c src/noise.c src/util.c src/map.c src/db.c sqlite3/sqlite3.c
+main.o: src/main.c src/noise.c src/util.c src/map.c src/db.c sqlite3/sqlite3.c
 	gcc $(FLAGS) $(INCLUDE) -c -o main.o src/main.c
+	
+util.o: src/util.c
 	gcc $(FLAGS) $(INCLUDE) -c -o util.o src/util.c
+	
+noise.o: src/noise.c
 	gcc $(FLAGS) $(INCLUDE) -c -o noise.o src/noise.c
+	
+map.o: src/map.c
 	gcc $(FLAGS) $(INCLUDE) -c -o map.o src/map.c
+	
+db.o: src/db.c
 	gcc $(FLAGS) $(INCLUDE) -c -o db.o src/db.c
+	
+sqlite3.o: sqlite3/sqlite3.c
 	gcc $(FLAGS) -c -o sqlite3.o sqlite3/sqlite3.c

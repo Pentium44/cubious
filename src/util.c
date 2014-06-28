@@ -22,7 +22,7 @@ void update_fps(FPS *fps, int show) {
         fps->frames = 0;
         fps->since = now;
         if (show) {
-            printf("%d\n", result);
+            printf("FPS: %d\n", result);
         }
     }
 }

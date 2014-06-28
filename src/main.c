@@ -16,7 +16,7 @@
 #include "util.h"
 
 #define VSYNC 1
-#define SHOW_FPS 0
+#define SHOW_FPS 1
 #define CHUNK_SIZE 32
 #define MAX_CHUNKS 1024
 #define CREATE_CHUNK_RADIUS 6
@@ -346,7 +346,7 @@ void exposed_faces(
     *f1 = map_get(map, x - 1, y, z) == 0;
     *f2 = map_get(map, x + 1, y, z) == 0;
     *f3 = map_get(map, x, y + 1, z) == 0;
-    *f4 = map_get(map, x, y - 1, z) == 0 & y > 0;
+    *f4 = map_get(map, x, y - 1, z) == 0 && y > 0;
     *f5 = map_get(map, x, y, z + 1) == 0;
     *f6 = map_get(map, x, y, z - 1) == 0;
 }
@@ -544,9 +544,19 @@ void on_key(int key, int pressed) {
     if (key == GLFW_KEY_TAB) {
         flying = !flying;
     }
+    if (key == 'E') {
+		if(block_type < '8') {
+			block_type++;
+		} else {
+			block_type = '0';
+		}
+		printf("Block ID: %d\n",block_type);	
+	}
+   /*
     if (key >= '1' && key <= '8') {
         block_type = key - '1' + 1;
     }
+   */
 }
 
 void on_mouse_button(int button, int pressed) {
