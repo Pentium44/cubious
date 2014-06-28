@@ -1,11 +1,5 @@
-#ifdef __APPLE__
-    #define GLFW_INCLUDE_GL3
-    #define GLFW_NO_GLU
-#else
-    #include <GL/glew.h>
-#endif
-
-#include <GL/glfw.h>
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,6 +17,7 @@
 #define RENDER_CHUNK_RADIUS 6
 #define DELETE_CHUNK_RADIUS 8
 
+static GLFWwindow *window;
 static int exclusive = 1;
 static int left_click = 0;
 static int right_click = 0;
@@ -42,7 +37,7 @@ typedef struct {
 
 void update_matrix_2d(float *matrix) {
     int width, height;
-    glfwGetWindowSize(&width, &height);
+    glfwGetWindowSize(window, &width, &height);
     glViewport(0, 0, width, height);
     mat_ortho(matrix, 0, width, 0, height, -1, 1);
 }
@@ -53,7 +48,7 @@ void update_matrix_3d(
     float a[16];
     float b[16];
     int width, height;
-    glfwGetWindowSize(&width, &height);
+    glfwGetWindowSize(window, &width, &height);
     glViewport(0, 0, width, height);
     float aspect = (float)width / height;
     mat_identity(a);
@@ -78,7 +73,7 @@ void update_matrix_3d(
 
 GLuint make_line_buffer() {
     int width, height;
-    glfwGetWindowSize(&width, &height);
+    glfwGetWindowSize(window, &width, &height);
     int x = width / 2;
     int y = height / 2;
     int p = 10;
@@ -187,6 +182,10 @@ int highest_block(Chunk *chunks, int chunk_count, float x, float z) {
         } END_MAP_FOR_EACH;
     }
     return result;
+}
+
+int is_transparent(int w) {
+	return w == 0 || w == 4 || w == 7;
 }
 
 int _hit_test(
@@ -368,6 +367,16 @@ void exposed_faces(
     Map *map, int x, int y, int z,
     int *f1, int *f2, int *f3, int *f4, int *f5, int *f6)
 {
+	/*
+	 
+    *f1 = is_transparent(map_get(map, x - 1, y, z)) == 0;
+    *f2 = is_transparent(map_get(map, x + 1, y, z)) == 0;
+    *f3 = is_transparent(map_get(map, x, y + 1, z)) == 0;
+    *f4 = is_transparent(map_get(map, x, y - 1, z)) == 0 && y > 0;
+    *f5 = is_transparent(map_get(map, x, y, z + 1)) == 0;
+    *f6 = is_transparent(map_get(map, x, y, z - 1)) == 0;
+    
+    */
     *f1 = map_get(map, x - 1, y, z) == 0;
     *f2 = map_get(map, x + 1, y, z) == 0;
     *f3 = map_get(map, x, y + 1, z) == 0;
@@ -556,14 +565,14 @@ void set_block(Chunk *chunks, int chunk_count, int x, int y, int z, int w) {
     }
 }
 
-void on_key(int key, int pressed) {
-    if (!pressed) {
+void on_key(GLFWwindow *window, int key, int scancode, int action, int mods) {
+    if (action != GLFW_PRESS) {
         return;
     }
-    if (key == GLFW_KEY_ESC) {
+    if (key == GLFW_KEY_ESCAPE) {
         if (exclusive) {
             exclusive = 0;
-            glfwEnable(GLFW_MOUSE_CURSOR);
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         }
     }
     if (key == GLFW_KEY_TAB) {
@@ -584,8 +593,8 @@ void on_key(int key, int pressed) {
    */
 }
 
-void on_mouse_button(int button, int pressed) {
-    if (!pressed) {
+void on_mouse_button(GLFWwindow *window, int button, int action, int mods) {
+    if (action != GLFW_PRESS) {
         return;
     }
     if (button == 0) {
@@ -594,7 +603,7 @@ void on_mouse_button(int button, int pressed) {
         }
         else {
             exclusive = 1;
-            glfwDisable(GLFW_MOUSE_CURSOR);
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         }
     }
     if (button == 1) {
@@ -610,20 +619,16 @@ int main(int argc, char **argv) {
     if (!glfwInit()) {
         return -1;
     }
-    #ifdef __APPLE__
-        glfwOpenWindowHint(GLFW_OPENGL_VERSION_MAJOR, 3);
-        glfwOpenWindowHint(GLFW_OPENGL_VERSION_MINOR, 2);
-        glfwOpenWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-        glfwOpenWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    #endif
-    if (!glfwOpenWindow(1024, 768, 8, 8, 8, 0, 24, 0, GLFW_WINDOW)) {
+    window = glfwCreateWindow(1024, 768, "Craft", NULL, NULL);
+    if(!window) {
+		glfwTerminate();
         return -1;
     }
+    glfwMakeContextCurrent(window);
     glfwSwapInterval(VSYNC);
-    glfwDisable(GLFW_MOUSE_CURSOR);
-    glfwSetWindowTitle("Cubious");
-    glfwSetKeyCallback(on_key);
-    glfwSetMouseButtonCallback(on_mouse_button);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetKeyCallback(window, on_key);
+    glfwSetMouseButtonCallback(window, on_mouse_button);
 
     #ifndef __APPLE__
         if (glewInit() != GLEW_OK) {
@@ -641,9 +646,9 @@ int main(int argc, char **argv) {
     glLogicOp(GL_INVERT);
     glClearColor(0.53, 0.81, 0.92, 1.00);
 
-    GLuint vertex_array;
-    glGenVertexArrays(1, &vertex_array);
-    glBindVertexArray(vertex_array);
+    //GLuint vertex_array;
+    //glGenVertexArrays(1, &vertex_array);
+    //glBindVertexArray(vertex_array);
 
     GLuint texture;
     glGenTextures(1, &texture);
@@ -651,10 +656,10 @@ int main(int argc, char **argv) {
     glBindTexture(GL_TEXTURE_2D, texture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glfwLoadTexture2D("texture.tga", 0);
+    load_png_texture("texture.png");
 
-    GLuint block_program = load_program(
-        "shaders/block_vertex.glsl", "shaders/block_fragment.glsl");
+    //GLuint block_program; 
+    GLuint block_program = load_program("shaders/block_vertex.glsl", "shaders/block_fragment.glsl");
     GLuint matrix_loc = glGetUniformLocation(block_program, "matrix");
     GLuint camera_loc = glGetUniformLocation(block_program, "camera");
     GLuint sampler_loc = glGetUniformLocation(block_program, "sampler");
@@ -663,8 +668,8 @@ int main(int argc, char **argv) {
     GLuint normal_loc = glGetAttribLocation(block_program, "normal");
     GLuint uv_loc = glGetAttribLocation(block_program, "uv");
 
-    GLuint line_program = load_program(
-        "shaders/line_vertex.glsl", "shaders/line_fragment.glsl");
+	//GLuint line_program;
+    GLuint line_program = load_program("shaders/line_vertex.glsl", "shaders/line_fragment.glsl");
     GLuint line_matrix_loc = glGetUniformLocation(line_program, "matrix");
     GLuint line_position_loc = glGetAttribLocation(line_program, "position");
 
@@ -679,8 +684,8 @@ int main(int argc, char **argv) {
     float dy = 0;
     float rx = 0;
     float ry = 0;
-    int px = 0;
-    int py = 0;
+    double px = 0;
+    double py = 0;
 
     int loaded = db_load_state(&x, &y, &z, &rx, &ry);
     ensure_chunks(chunks, &chunk_count,
@@ -690,17 +695,17 @@ int main(int argc, char **argv) {
         y = highest_block(chunks, chunk_count, x, z) + 2;
     }
 
-    glfwGetMousePos(&px, &py);
+    glfwGetCursorPos(window, &px, &py);
     double previous = glfwGetTime();
-    while (glfwGetWindowParam(GLFW_OPENED)) {
+    while (!glfwWindowShouldClose(window)) {
         update_fps(&fps, SHOW_FPS);
         double now = glfwGetTime();
         double dt = MIN(now - previous, 0.2);
         previous = now;
 
         if (exclusive) {
-            int mx, my;
-            glfwGetMousePos(&mx, &my);
+            double mx, my;
+            glfwGetCursorPos(window, &mx, &my);
             float m = 0.0025;
             rx += (mx - px) * m;
             ry -= (my - py) * m;
@@ -714,9 +719,8 @@ int main(int argc, char **argv) {
             ry = MIN(ry, RADIANS(90));
             px = mx;
             py = my;
-        }
-        else {
-            glfwGetMousePos(&px, &py);
+        } else {
+			glfwGetCursorPos(window, &px, &py);
         }
 
         if (left_click) {
@@ -745,13 +749,13 @@ int main(int argc, char **argv) {
 
         int sz = 0;
         int sx = 0;
-        ortho = glfwGetKey(GLFW_KEY_LSHIFT);
-        if (glfwGetKey('Q')) break;
-        if (glfwGetKey('W')) sz--;
-        if (glfwGetKey('S')) sz++;
-        if (glfwGetKey('A')) sx--;
-        if (glfwGetKey('D')) sx++;
-        if (dy == 0 && glfwGetKey(GLFW_KEY_SPACE)) {
+        ortho = glfwGetKey(window,GLFW_KEY_LEFT_SHIFT);
+        if (glfwGetKey(window,'Q')) break;
+        if (glfwGetKey(window,'W')) sz--;
+        if (glfwGetKey(window,'S')) sz++;
+        if (glfwGetKey(window,'A')) sx--;
+        if (glfwGetKey(window,'D')) sx++;
+        if (dy == 0 && glfwGetKey(window,GLFW_KEY_SPACE)) {
             dy = 8;
         }
         float vx, vy, vz;
@@ -827,7 +831,8 @@ int main(int argc, char **argv) {
         glDeleteBuffers(1, &buffer);
         glDisable(GL_COLOR_LOGIC_OP);
 
-        glfwSwapBuffers();
+        glfwSwapBuffers(window);
+        glfwPollEvents();
     }
     db_save_state(x, y, z, rx, ry);
     db_close();

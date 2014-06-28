@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include "db.h"
-#include "../sqlite3/sqlite3.h"
+#include "sqlite3/sqlite3.h"
 
 static sqlite3 *db;
 static sqlite3_stmt *insert_block_stmt;
