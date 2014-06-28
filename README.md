@@ -18,18 +18,14 @@ A simple voxel game based from Craft. Planning on adding more features!
 ### Todo
 
 * Add configuration parser
-* More nodes
-* Nodeboxes
-* New textures
+* More nodes - Working on it
+* Nodeboxes - Gonna be a while
+* New textures - DONE! 
 
 ### License
 
 -- Any additions to this code:
 Copyright (C) Chris Dorman, 2014
-
-Cubious, a game based from Craft, is maintained by Chris Dorman and is 
-released under the GPLv3 (GNU General Public License Version 3).
-
 
 -- Original code license: 
 Copyright (C) 2013 Michael Fogleman

@@ -2,6 +2,7 @@ FLAGS=-std=c99 -O3 -Wall
 #INCLUDE=-I src/glew/include
 #LIBRARY=-L src/glew/src
 EXE=cubious
+CC=gcc
 
 all: main
 

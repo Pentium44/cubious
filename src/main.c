@@ -10,6 +10,7 @@
 #include "util.h"
 
 #define VSYNC 1
+#define FULLSCREEN 1
 #define SHOW_FPS 1
 #define CHUNK_SIZE 32
 #define MAX_CHUNKS 1024
@@ -34,6 +35,18 @@ typedef struct {
     GLuint normal_buffer;
     GLuint uv_buffer;
 } Chunk;
+
+int is_plant(int w) {
+	return w > 14;
+}
+
+int is_transparent(int w) {
+	return w == 4 || w == 7 || is_plant(w);;
+}
+
+int is_obstacle(int w) {
+	return w != 0 && w <= 8;
+}
 
 void update_matrix_2d(float *matrix) {
     int width, height;
@@ -176,16 +189,12 @@ int highest_block(Chunk *chunks, int chunk_count, float x, float z) {
     if (chunk) {
         Map *map = &chunk->map;
         MAP_FOR_EACH(map, e) {
-            if (e->w && e->x == nx && e->z == nz) {
+            if (is_obstacle(e->w) && e->x == nx && e->z == nz) {
                 result = MAX(result, e->y);
             }
         } END_MAP_FOR_EACH;
     }
     return result;
-}
-
-int is_transparent(int w) {
-	return w == 0 || w == 4 || w == 7;
 }
 
 int _hit_test(
@@ -203,14 +212,16 @@ int _hit_test(
         int ny = roundf(y);
         int nz = roundf(z);
         if (nx != px || ny != py || nz != pz) {
-            if (map_get(map, nx, ny, nz)) {
+            //if (map_get(map, nx, ny, nz)) {
+            int hw = map_get(map, nx, ny, nz);
+            if (hw > 0) {
                 if (previous) {
                     *hx = px; *hy = py; *hz = pz;
                 }
                 else {
                     *hx = nx; *hy = ny; *hz = nz;
                 }
-                return 1;
+                return hw;
             }
             px = nx; py = ny; pz = nz;
         }
@@ -236,8 +247,9 @@ int hit_test(
             continue;
         }
         int hx, hy, hz;
-        if (_hit_test(&chunk->map, 8, previous,
-            x, y, z, vx, vy, vz, &hx, &hy, &hz))
+        int hw = _hit_test(&chunk->map, 8, previous,
+            x, y, z, vx, vy, vz, &hx, &hy, &hz);
+        if (hw > 0)
         {
             float d = sqrtf(
                 powf(hx - x, 2) + powf(hy - y, 2) + powf(hz - z, 2));
@@ -271,24 +283,24 @@ int collide(
     float pz = *z - nz;
     float pad = 0.25;
     for (int dy = 0; dy < height; dy++) {
-        if (px < -pad && map_get(map, nx - 1, ny - dy, nz)) {
+        if (px < -pad && is_obstacle(map_get(map, nx - 1, ny - dy, nz))) {
             *x = nx - pad;
         }
-        if (px > pad && map_get(map, nx + 1, ny - dy, nz)) {
+        if (px > pad && is_obstacle(map_get(map, nx + 1, ny - dy, nz))) {
             *x = nx + pad;
         }
-        if (py < -pad && map_get(map, nx, ny - dy - 1, nz)) {
+        if (py < -pad && is_obstacle(map_get(map, nx, ny - dy - 1, nz))) {
             *y = ny - pad;
             result = 1;
         }
-        if (py > pad && map_get(map, nx, ny - dy + 1, nz)) {
+        if (py > pad && is_obstacle(map_get(map, nx, ny - dy + 1, nz))) {
             *y = ny + pad;
             result = 1;
         }
-        if (pz < -pad && map_get(map, nx, ny - dy, nz - 1)) {
+        if (pz < -pad && is_obstacle(map_get(map, nx, ny - dy, nz - 1))) {
             *z = nz - pad;
         }
-        if (pz > pad && map_get(map, nx, ny - dy, nz + 1)) {
+        if (pz > pad && is_obstacle(map_get(map, nx, ny - dy, nz + 1))) {
             *z = nz + pad;
         }
     }
@@ -358,6 +370,10 @@ void make_world(Map *map, int p, int q) {
 					map_set(map, x, y, z, 5);
 				}
 			}
+			
+			if(w == 1 && simplex2(x * 0.05, -z * 0.05, 4, 0.8, 2) > 0.7) {
+				map_set(map, x, h, z, 16);
+			}
         }
     }
     db_update_chunk(map, p, q);
@@ -367,22 +383,23 @@ void exposed_faces(
     Map *map, int x, int y, int z,
     int *f1, int *f2, int *f3, int *f4, int *f5, int *f6)
 {
-	/*
+	
 	 
-    *f1 = is_transparent(map_get(map, x - 1, y, z)) == 0;
-    *f2 = is_transparent(map_get(map, x + 1, y, z)) == 0;
-    *f3 = is_transparent(map_get(map, x, y + 1, z)) == 0;
-    *f4 = is_transparent(map_get(map, x, y - 1, z)) == 0 && y > 0;
-    *f5 = is_transparent(map_get(map, x, y, z + 1)) == 0;
-    *f6 = is_transparent(map_get(map, x, y, z - 1)) == 0;
+    *f1 = is_obstacle(map_get(map, x - 1, y, z)) == 0;
+    *f2 = is_obstacle(map_get(map, x + 1, y, z)) == 0;
+    *f3 = is_obstacle(map_get(map, x, y + 1, z)) == 0;
+    *f4 = is_obstacle(map_get(map, x, y - 1, z)) == 0 && y > 0;
+    *f5 = is_obstacle(map_get(map, x, y, z + 1)) == 0;
+    *f6 = is_obstacle(map_get(map, x, y, z - 1)) == 0;
     
-    */
+    /*
     *f1 = map_get(map, x - 1, y, z) == 0;
     *f2 = map_get(map, x + 1, y, z) == 0;
     *f3 = map_get(map, x, y + 1, z) == 0;
     *f4 = map_get(map, x, y - 1, z) == 0 && y > 0;
     *f5 = map_get(map, x, y, z + 1) == 0;
     *f6 = map_get(map, x, y, z - 1) == 0;
+    */
 }
 
 void update_chunk(Chunk *chunk) {
@@ -402,6 +419,9 @@ void update_chunk(Chunk *chunk) {
         int f1, f2, f3, f4, f5, f6;
         exposed_faces(map, e->x, e->y, e->z, &f1, &f2, &f3, &f4, &f5, &f6);
         int total = f1 + f2 + f3 + f4 + f5 + f6;
+        if(is_plant(e->w)) {
+			total = total ? 4 : 0;
+		}
         faces += total;
     } END_MAP_FOR_EACH;
 
@@ -417,15 +437,30 @@ void update_chunk(Chunk *chunk) {
         int f1, f2, f3, f4, f5, f6;
         exposed_faces(map, e->x, e->y, e->z, &f1, &f2, &f3, &f4, &f5, &f6);
         int total = f1 + f2 + f3 + f4 + f5 + f6;
-        if (total == 0) {
+        
+        if(is_plant(e->w)) {
+			total = total ? 4 : 0;
+		}
+		
+        if(total == 0) {
             continue;
         }
-        make_cube(
-            position_data + position_offset,
-            normal_data + position_offset,
-            uv_data + uv_offset,
-            f1, f2, f3, f4, f5, f6,
-            e->x, e->y, e->z, 0.5, e->w);
+        
+        if(is_plant(e->w)) {
+			float rotation = simplex3(e->x, e->y, e->z, 4, 0.5, 2) * 360;
+			make_plant(
+				position_data + position_offset,
+				normal_data + position_offset,
+				uv_data + uv_offset,
+				e->x, e->y, e->z, 0.5, e->w, rotation);
+		} else {
+			make_cube(
+				position_data + position_offset,
+				normal_data + position_offset,
+				uv_data + uv_offset,
+				f1, f2, f3, f4, f5, f6,
+				e->x, e->y, e->z, 0.5, e->w);
+		}
         position_offset += total * 18;
         uv_offset += total * 12;
     } END_MAP_FOR_EACH;
@@ -613,13 +648,27 @@ void on_mouse_button(GLFWwindow *window, int button, int action, int mods) {
     }
 }
 
+void create_window() {
+	int width = 1024;
+	int height = 768;
+	GLFWmonitor *monitor = NULL;
+	if (FULLSCREEN) {
+		int mode_count;
+		monitor = glfwGetPrimaryMonitor();
+		const GLFWvidmode *modes = glfwGetVideoModes(monitor, &mode_count);
+		width = modes[mode_count - 1].width;
+		height = modes[mode_count - 1].height;
+	}
+	window = glfwCreateWindow(1024, 768, "Craft", NULL, NULL);
+}
+
 int main(int argc, char **argv) {
     srand(time(NULL));
     rand();
     if (!glfwInit()) {
         return -1;
     }
-    window = glfwCreateWindow(1024, 768, "Craft", NULL, NULL);
+    create_window();
     if(!window) {
 		glfwTerminate();
         return -1;
@@ -738,8 +787,9 @@ int main(int argc, char **argv) {
         if (right_click) {
             right_click = 0;
             int hx, hy, hz;
-            if (hit_test(chunks, chunk_count, 1, x, y, z, rx, ry,
-                &hx, &hy, &hz))
+            int hw = hit_test(chunks, chunk_count, 1, x, y, z, rx, ry,
+                &hx, &hy, &hz);
+            if (is_obstacle(hw))
             {
                 if (!player_intersects_block(2, x, y, z, hx, hy, hz)) {
                     set_block(chunks, chunk_count, hx, hy, hz, block_type);
@@ -808,7 +858,8 @@ int main(int argc, char **argv) {
 
         // render focused block wireframe
         int hx, hy, hz;
-        if (hit_test(chunks, chunk_count, 0, x, y, z, rx, ry, &hx, &hy, &hz)) {
+        int hw = hit_test(chunks, chunk_count, 0, x, y, z, rx, ry, &hx, &hy, &hz);
+        if (is_obstacle(hw)) {
             glUseProgram(line_program);
             glLineWidth(1);
             glEnable(GL_COLOR_LOGIC_OP);

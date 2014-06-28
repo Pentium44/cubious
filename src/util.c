@@ -1,3 +1,4 @@
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -261,6 +262,115 @@ void mat_ortho(
     matrix[15] = 1;
 }
 
+void make_plant(
+    float *vertex, float *normal, float *texture,
+    float x, float y, float z, float n, int w, float rotation)
+{
+    float *v = vertex;
+    float *d = normal;
+    float *t = texture;
+    float s = 0.0625;
+    float a = 0;
+    float b = s;
+    float du, dv;
+    w--;
+    du = (w % 16) * s;
+    dv = (w / 16 * 3) * s;
+    // left
+    *(v++) = x; *(v++) = y - n; *(v++) = z - n;
+    *(v++) = x; *(v++) = y + n; *(v++) = z + n;
+    *(v++) = x; *(v++) = y + n; *(v++) = z - n;
+    *(v++) = x; *(v++) = y - n; *(v++) = z - n;
+    *(v++) = x; *(v++) = y - n; *(v++) = z + n;
+    *(v++) = x; *(v++) = y + n; *(v++) = z + n;
+    *(d++) = -1; *(d++) = 0; *(d++) = 0;
+    *(d++) = -1; *(d++) = 0; *(d++) = 0;
+    *(d++) = -1; *(d++) = 0; *(d++) = 0;
+    *(d++) = -1; *(d++) = 0; *(d++) = 0;
+    *(d++) = -1; *(d++) = 0; *(d++) = 0;
+    *(d++) = -1; *(d++) = 0; *(d++) = 0;
+    *(t++) = a + du; *(t++) = a + dv;
+    *(t++) = b + du; *(t++) = b + dv;
+    *(t++) = a + du; *(t++) = b + dv;
+    *(t++) = a + du; *(t++) = a + dv;
+    *(t++) = b + du; *(t++) = a + dv;
+    *(t++) = b + du; *(t++) = b + dv;
+    // right
+    *(v++) = x; *(v++) = y - n; *(v++) = z - n;
+    *(v++) = x; *(v++) = y + n; *(v++) = z + n;
+    *(v++) = x; *(v++) = y - n; *(v++) = z + n;
+    *(v++) = x; *(v++) = y - n; *(v++) = z - n;
+    *(v++) = x; *(v++) = y + n; *(v++) = z - n;
+    *(v++) = x; *(v++) = y + n; *(v++) = z + n;
+    *(d++) = 1; *(d++) = 0; *(d++) = 0;
+    *(d++) = 1; *(d++) = 0; *(d++) = 0;
+    *(d++) = 1; *(d++) = 0; *(d++) = 0;
+    *(d++) = 1; *(d++) = 0; *(d++) = 0;
+    *(d++) = 1; *(d++) = 0; *(d++) = 0;
+    *(d++) = 1; *(d++) = 0; *(d++) = 0;
+    *(t++) = b + du; *(t++) = a + dv;
+    *(t++) = a + du; *(t++) = b + dv;
+    *(t++) = a + du; *(t++) = a + dv;
+    *(t++) = b + du; *(t++) = a + dv;
+    *(t++) = b + du; *(t++) = b + dv;
+    *(t++) = a + du; *(t++) = b + dv;
+    // front
+    *(v++) = x - n; *(v++) = y - n; *(v++) = z;
+    *(v++) = x + n; *(v++) = y - n; *(v++) = z;
+    *(v++) = x + n; *(v++) = y + n; *(v++) = z;
+    *(v++) = x - n; *(v++) = y - n; *(v++) = z;
+    *(v++) = x + n; *(v++) = y + n; *(v++) = z;
+    *(v++) = x - n; *(v++) = y + n; *(v++) = z;
+    *(d++) = 0; *(d++) = 0; *(d++) = -1;
+    *(d++) = 0; *(d++) = 0; *(d++) = -1;
+    *(d++) = 0; *(d++) = 0; *(d++) = -1;
+    *(d++) = 0; *(d++) = 0; *(d++) = -1;
+    *(d++) = 0; *(d++) = 0; *(d++) = -1;
+    *(d++) = 0; *(d++) = 0; *(d++) = -1;
+    *(t++) = b + du; *(t++) = a + dv;
+    *(t++) = a + du; *(t++) = a + dv;
+    *(t++) = a + du; *(t++) = b + dv;
+    *(t++) = b + du; *(t++) = a + dv;
+    *(t++) = a + du; *(t++) = b + dv;
+    *(t++) = b + du; *(t++) = b + dv;
+    // back
+    *(v++) = x - n; *(v++) = y - n; *(v++) = z;
+    *(v++) = x + n; *(v++) = y + n; *(v++) = z;
+    *(v++) = x + n; *(v++) = y - n; *(v++) = z;
+    *(v++) = x - n; *(v++) = y - n; *(v++) = z;
+    *(v++) = x - n; *(v++) = y + n; *(v++) = z;
+    *(v++) = x + n; *(v++) = y + n; *(v++) = z;
+    *(d++) = 0; *(d++) = 0; *(d++) = 1;
+    *(d++) = 0; *(d++) = 0; *(d++) = 1;
+    *(d++) = 0; *(d++) = 0; *(d++) = 1;
+    *(d++) = 0; *(d++) = 0; *(d++) = 1;
+    *(d++) = 0; *(d++) = 0; *(d++) = 1;
+    *(d++) = 0; *(d++) = 0; *(d++) = 1;
+    *(t++) = a + du; *(t++) = a + dv;
+    *(t++) = b + du; *(t++) = b + dv;
+    *(t++) = b + du; *(t++) = a + dv;
+    *(t++) = a + du; *(t++) = a + dv;
+    *(t++) = a + du; *(t++) = b + dv;
+    *(t++) = b + du; *(t++) = b + dv;
+    float mat[16];
+    float vec[4] = {0};
+    mat_rotate(mat, 0, 1, 0, RADIANS(rotation));
+    for (int i = 0; i < 24; i++) {
+        // vertex
+        v = vertex + i * 3;
+        vec[0] = *(v++) - x; vec[1] = *(v++) - y; vec[2] = *(v++) - z;
+        mat_vec_multiply(vec, mat, vec);
+        v = vertex + i * 3;
+        *(v++) = vec[0] + x; *(v++) = vec[1] + y; *(v++) = vec[2] + z;
+        // normal
+        d = normal + i * 3;
+        vec[0] = *(d++); vec[1] = *(d++); vec[2] = *(d++);
+        mat_vec_multiply(vec, mat, vec);
+        d = normal + i * 3;
+        *(d++) = vec[0]; *(d++) = vec[1]; *(d++) = vec[2];
+    }
+}
+
 void make_cube(
     float *vertex, float *normal, float *texture,
     int left, int right, int top, int bottom, int front, int back,
@@ -269,13 +379,16 @@ void make_cube(
     float *v = vertex;
     float *d = normal;
     float *t = texture;
-    float s = 0.125;
+    float s = 0.0625;
     float a = 0;
     float b = s;
     float du, dv;
+    float ou, ov;
     w--;
+    ou = (w % 16) * s;
+    ov = (w / 16 * 3) * s;
     if (left) {
-        du = w * s; dv = s;
+        du = ou; dv = ov + s;
         *(v++) = x - n; *(v++) = y - n; *(v++) = z - n;
         *(v++) = x - n; *(v++) = y + n; *(v++) = z + n;
         *(v++) = x - n; *(v++) = y + n; *(v++) = z - n;
@@ -296,7 +409,7 @@ void make_cube(
         *(t++) = b + du; *(t++) = b + dv;
     }
     if (right) {
-        du = w * s; dv = s;
+		du = ou; dv = ov + s;
         *(v++) = x + n; *(v++) = y - n; *(v++) = z - n;
         *(v++) = x + n; *(v++) = y + n; *(v++) = z + n;
         *(v++) = x + n; *(v++) = y - n; *(v++) = z + n;
@@ -317,7 +430,7 @@ void make_cube(
         *(t++) = a + du; *(t++) = b + dv;
     }
     if (top) {
-        du = w * s; dv = s + s;
+		du = ou; dv = ov + s + s;
         *(v++) = x - n; *(v++) = y + n; *(v++) = z - n;
         *(v++) = x - n; *(v++) = y + n; *(v++) = z + n;
         *(v++) = x + n; *(v++) = y + n; *(v++) = z + n;
@@ -338,7 +451,7 @@ void make_cube(
         *(t++) = b + du; *(t++) = b + dv;
     }
     if (bottom) {
-        du = w * s; dv = 0;
+        du = ou; dv = ov + 0;
         *(v++) = x - n; *(v++) = y - n; *(v++) = z - n;
         *(v++) = x + n; *(v++) = y - n; *(v++) = z - n;
         *(v++) = x + n; *(v++) = y - n; *(v++) = z + n;
@@ -359,7 +472,7 @@ void make_cube(
         *(t++) = a + du; *(t++) = b + dv;
     }
     if (front) {
-        du = w * s; dv = s;
+        du = ou; dv = ov + s;
         *(v++) = x - n; *(v++) = y - n; *(v++) = z + n;
         *(v++) = x + n; *(v++) = y - n; *(v++) = z + n;
         *(v++) = x + n; *(v++) = y + n; *(v++) = z + n;
@@ -380,7 +493,7 @@ void make_cube(
         *(t++) = b + du; *(t++) = b + dv;
     }
     if (back) {
-        du = w * s; dv = s;
+        du = ou; dv = ov + s;
         *(v++) = x - n; *(v++) = y - n; *(v++) = z - n;
         *(v++) = x + n; *(v++) = y + n; *(v++) = z - n;
         *(v++) = x + n; *(v++) = y - n; *(v++) = z - n;

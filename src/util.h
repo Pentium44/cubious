@@ -1,13 +1,13 @@
 #ifndef _util_h_
 #define _util_h_
 
-/*
+
 #ifdef __APPLE__
 	#define GLFW_INCLUDE_GLCOREARB
 #else
 	#include <GL/glew.h>
 #endif
-*/
+
 
 #include <GLFW/glfw3.h>
 
@@ -48,7 +48,9 @@ void mat_perspective(
 void mat_ortho(
     float *matrix,
     float left, float right, float bottom, float top, float near, float far);
-
+void make_plant(
+    float *vertex, float *normal, float *texture,
+    float x, float y, float z, float n, int w, float rotation);
 void make_cube(
     float *vertex, float *normal, float *texture,
     int left, int right, int top, int bottom, int front, int back,
