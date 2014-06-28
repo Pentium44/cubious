@@ -40,12 +40,12 @@ int is_plant(int w) {
 	return w > 14;
 }
 
-int is_transparent(int w) {
-	return w == 4 || w == 7 || is_plant(w);;
-}
-
 int is_obstacle(int w) {
 	return w != 0 && w <= 8;
+}
+
+int is_transparent(int w) {
+	return w == 0 || w == 4 || w == 7 || is_plant(w);;
 }
 
 void update_matrix_2d(float *matrix) {
@@ -385,12 +385,12 @@ void exposed_faces(
 {
 	
 	 
-    *f1 = is_obstacle(map_get(map, x - 1, y, z)) == 0;
-    *f2 = is_obstacle(map_get(map, x + 1, y, z)) == 0;
-    *f3 = is_obstacle(map_get(map, x, y + 1, z)) == 0;
-    *f4 = is_obstacle(map_get(map, x, y - 1, z)) == 0 && y > 0;
-    *f5 = is_obstacle(map_get(map, x, y, z + 1)) == 0;
-    *f6 = is_obstacle(map_get(map, x, y, z - 1)) == 0;
+    *f1 = is_transparent(map_get(map, x - 1, y, z));
+    *f2 = is_transparent(map_get(map, x + 1, y, z));
+    *f3 = is_transparent(map_get(map, x, y + 1, z));
+    *f4 = is_transparent(map_get(map, x, y - 1, z)) && (y > 0);
+    *f5 = is_transparent(map_get(map, x, y, z + 1));
+    *f6 = is_transparent(map_get(map, x, y, z - 1));
     
     /*
     *f1 = map_get(map, x - 1, y, z) == 0;
