@@ -12,7 +12,7 @@ clean:
 main: sqlite3.o main.o util.o noise.o map.o db.o
 	gcc $(FLAGS) main.o util.o noise.o map.o db.o sqlite3.o -o $(EXE) $(LIBRARY) -lglfw -lGLEW -lGL -lGLU -lm -lpthread -ldl
 
-main.o: src/main.c src/noise.c src/util.c src/map.c src/db.c sqlite3/sqlite3.c
+main.o: src/main.c
 	gcc $(FLAGS) $(INCLUDE) -c -o main.o src/main.c
 	
 util.o: src/util.c
