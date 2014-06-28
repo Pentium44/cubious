@@ -1,7 +1,7 @@
 glew
 glfw
-main
-main.exe
+cubious
+cubious.exe
 sqlite3
 *.o
 *.dylib
