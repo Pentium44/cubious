@@ -2,6 +2,7 @@ glew
 glfw
 cubious
 cubious.exe
+*.db
 *.o
 *.dylib
 *.dll
