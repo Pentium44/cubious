@@ -8,6 +8,7 @@
 #include "map.h"
 #include "noise.h"
 #include "util.h"
+#include "client.h"
 
 #define VSYNC 1
 #define FULLSCREEN 0
@@ -25,6 +26,8 @@ static int right_click = 0;
 static int flying = 0;
 static int block_type = 1;
 static int ortho = 0;
+static int port = 8887;
+static char *address = "127.0.0.1";
 
 typedef struct {
     Map map;
@@ -520,6 +523,12 @@ void _set_block(
         map_set(map, x, y, z, w);
         update_chunk(chunk);
     }
+    /*
+		Test server connection
+    */
+    //if(client_connected) {
+	//	client_send("Block", x, y, z, p, q, w);
+	//}
     db_insert_block(p, q, x, y, z, w);
 }
 
@@ -681,6 +690,12 @@ int main(int argc, char **argv) {
 
     glfwGetCursorPos(window, &px, &py);
     double previous = glfwGetTime();
+    
+    /*
+		Test server connection
+    */
+    //client_connect(address, port);
+    
     while (!glfwWindowShouldClose(window)) {
         update_fps(&fps, SHOW_FPS);
         double now = glfwGetTime();

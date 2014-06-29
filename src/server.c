@@ -42,7 +42,10 @@ void listen_to_connection(int fd) {
 	char buffer[BUFSIZE*4];
 	int read_size;
 	while((read_size = recv(fd, buffer, maxlen, 0)) > 0 ) {
-		write(fd, buffer, read_size);
+		write_file(INFO,buffer); // write to log
+		
+		char *in_msg = "recv complete";
+		write(fd, in_msg, 13);
 	}
 	
 	if(read_size == 0)
