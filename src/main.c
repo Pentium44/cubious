@@ -37,7 +37,7 @@ typedef struct {
 } Chunk;
 
 int is_plant(int w) {
-	return w > 14;
+	return w > 16 && w != 32;
 }
 
 int is_obstacle(int w) {
@@ -349,13 +349,13 @@ void make_world(Map *map, int p, int q) {
                 map_set(map, x, y, z, w);
             }
             
-            // gen stumps so far :P
+            // Complete trees!
             int open_confirm = 1;
             if(dx - 3 < 0 || dz - 3 < 0 || dx + 4 >= CHUNK_SIZE || dz + 4 >= CHUNK_SIZE) {
 				open_confirm = 0;
 			}
 			
-			if(open_confirm && simplex2(x, z, 9, 0.5, 2) > 0.84) {
+			if(open_confirm && simplex2(x, z, 6, 0.5, 2) > 0.84) {
 				for (int y = h + 3; y < h + 8; y++) {
 					for (int ox = -3; ox <= 3; ox++) {
 						for (int oz = -3; oz <= 3; oz++) {
@@ -371,8 +371,21 @@ void make_world(Map *map, int p, int q) {
 				}
 			}
 			
-			if(w == 1 && simplex2(x * 0.05, -z * 0.05, 4, 0.8, 2) > 0.7) {
-				map_set(map, x, h, z, 16);
+			// Gen plants
+			if(w == 1 && simplex2(x * 0.1, z * 0.15, 4, 0.5, 2) > 0.76) {
+				map_set(map, x, h, z, 17); // write plants to map
+			}
+			
+			// Gen long grass
+			if(w == 1 && simplex2(x * 0.2, z * 0.3, 4, 0.5, 2) > 0.68) {
+				map_set(map, x, h, z, 18); // write long grass to map
+			}
+			
+			// Gen clouds
+			for(int y = 70; y < 78; y++) {
+				if(simplex3(x * 0.014, y * 0.1, z * 0.014, 6, 0.5, 2) > 0.70) {
+					map_set(map, x, y, z, 32); // write clouds to map
+				}
 			}
         }
     }
@@ -617,11 +630,6 @@ void on_key(GLFWwindow *window, int key, int scancode, int action, int mods) {
 		block_type = block_type % 8 + 1;
 		printf("Block ID: %d\n",block_type);	
 	}
-   /*
-    if (key >= '1' && key <= '8') {
-        block_type = key - '1' + 1;
-    }
-   */
 }
 
 void on_mouse_button(GLFWwindow *window, int button, int action, int mods) {
