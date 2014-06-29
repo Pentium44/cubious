@@ -663,7 +663,7 @@ void create_window() {
 		width = modes[mode_count - 1].width;
 		height = modes[mode_count - 1].height;
 	}
-	window = glfwCreateWindow(1024, 768, "Craft", NULL, NULL);
+	window = glfwCreateWindow(1024, 768, "Cubious", NULL, NULL);
 }
 
 int main(int argc, char **argv) {
