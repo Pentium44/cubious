@@ -614,11 +614,7 @@ void on_key(GLFWwindow *window, int key, int scancode, int action, int mods) {
         flying = !flying;
     }
     if (key == 'E') {
-		if(block_type < '8') {
-			block_type++;
-		} else {
-			block_type = '0';
-		}
+		block_type = block_type % 8 + 1;
 		printf("Block ID: %d\n",block_type);	
 	}
    /*
