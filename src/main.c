@@ -526,14 +526,9 @@ void _set_block(
     /*
 		Test server connection
     */
+    
     if(client_connected) {
-		if(w>0) {
-			client_send("createblock", x, y, z, p, q, w);
-		} 
-		
-		if(w==0) {
-			client_send("delblock", x, y, z, p, q, w);
-		}
+		client_send(x, y, z, p, q, w);
 	}
     db_insert_block(p, q, x, y, z, w);
 }
