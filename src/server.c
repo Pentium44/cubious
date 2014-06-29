@@ -23,7 +23,7 @@ void write_file(int type, char *string) {
 	if((fd = open("get.txt", O_CREAT| O_WRONLY | O_APPEND,0644)) >= 0) {
 		switch(type) {
 			case INFO:
-				(void)sprintf(logbuffer,"[From client]: %s", string);
+				(void)sprintf(logbuffer,"[Write]: %s", string);
 				(void)write(fd,logbuffer,strlen(logbuffer)); 
 				(void)write(fd,"\n",1);      
 				break;
@@ -43,9 +43,8 @@ void listen_to_connection(int fd) {
 	int read_size;
 	while((read_size = recv(fd, buffer, maxlen, 0)) > 0 ) {
 		write_file(INFO,buffer); // write to log
-		
-		char *in_msg = "recv complete";
-		write(fd, in_msg, 13);
+		write(fd, buffer, read_size);
+		bzero(buffer,read_size+1);
 	}
 	
 	if(read_size == 0)

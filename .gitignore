@@ -1,5 +1,7 @@
 glew
 glfw
+server
+server.exe
 cubious
 cubious.exe
 *.db

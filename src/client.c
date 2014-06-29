@@ -6,12 +6,13 @@
 #include <arpa/inet.h> 
 #include <math.h>
 #include "client.h"
+//#include "db.h"
 
 #define BUFSIZE 1024
 
 static int fd;
 static int maxlen = 2048;
-int connection_status = 0;
+static int connection_status = 0;
 struct sockaddr_in server;
 char buffer[BUFSIZE], recv_buffer[BUFSIZE*2];
 
@@ -52,7 +53,7 @@ int client_close_connection() {
 int client_send(char *action, int x, int y, int z, int p, int q, int w) {
 	char string[BUFSIZE];
 	
-	sprintf(string, "%s: %d,%d,%d,%d,%d,%d", action, x, y, z, p, q, w);
+	sprintf(string, "%d,%d,%d,%d,%d,%d", x, y, z, p, q, w);
 	
 	if(send(fd, string, strlen(string), 0) < 0)
 	{
@@ -69,5 +70,18 @@ int client_send(char *action, int x, int y, int z, int p, int q, int w) {
 	}
         
 	printf("Server: %s\n",recv_buffer);
+	//char separator[2] = ",";
+	//char *split = strtok(recv_buffer,separator);
+	//int var;
+	//int values[6];
+	//int i = 0;
+	/*
+	while(split != NULL) {
+		sscanf (split, "%d", &var);
+		values[i++] = var;
+	}
+	
+	db_insert_block(values[1], values[2], values[3], values[4], values[5], values[6]);
+	*/
 	return 0;
 }

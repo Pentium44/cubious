@@ -526,9 +526,15 @@ void _set_block(
     /*
 		Test server connection
     */
-    //if(client_connected) {
-	//	client_send("Block", x, y, z, p, q, w);
-	//}
+    if(client_connected) {
+		if(w>0) {
+			client_send("createblock", x, y, z, p, q, w);
+		} 
+		
+		if(w==0) {
+			client_send("delblock", x, y, z, p, q, w);
+		}
+	}
     db_insert_block(p, q, x, y, z, w);
 }
 
@@ -694,7 +700,7 @@ int main(int argc, char **argv) {
     /*
 		Test server connection
     */
-    //client_connect(address, port);
+    client_connect(address, port);
     
     while (!glfwWindowShouldClose(window)) {
         update_fps(&fps, SHOW_FPS);
