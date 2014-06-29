@@ -29,5 +29,6 @@ void map_alloc(Map *map);
 void map_free(Map *map);
 void map_set(Map *map, int x, int y, int z, int w);
 int map_get(Map *map, int x, int y, int z);
+void make_world(Map *map, int p, int q);
 
 #endif
