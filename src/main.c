@@ -695,7 +695,7 @@ int main(int argc, char **argv) {
     /*
 		Test server connection
     */
-    client_connect(address, port);
+    //client_connect(address, port);
     
     while (!glfwWindowShouldClose(window)) {
         update_fps(&fps, SHOW_FPS);
