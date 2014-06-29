@@ -2,7 +2,6 @@ glew
 glfw
 cubious
 cubious.exe
-sqlite3
 *.o
 *.dylib
 *.dll
