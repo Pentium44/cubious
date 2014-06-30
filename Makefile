@@ -1,7 +1,10 @@
-CFLAGS=-std=c99 -O3 -Wall
+CFLAGS=-std=c99 -O3
 #INCLUDE=-I src/glew/include
 #LIBRARY=-L src/glew/src
 EXE=cubious
+SERVEXE=server
+SERVFLAGS=-lm -lpthread -ldl
+CLIENTFLAGS=-lglfw3 -lpng -lGLEW -lGL -lGLU -lm -lpthread -ldl -lX11 -lXxf86vm -lXrandr -lXi
 CC=gcc
 
 all: main
@@ -10,28 +13,24 @@ run: all
 	./$(EXE)
 
 clean:
-	rm *.o $(EXE)
+	rm *.o $(EXE) #(SERVEXE)
 
-main: main.o util.o noise.o map.o db.o sqlite3.o client.o
+server: sqlite3.o server.o
+	$(CC) $(CFLAGS) server.o sqlite3.o -o $(SERVEXE)  $(SERVFLAGS)
+	
+main: client sqlite3.o
 	$(CC) $(CFLAGS) main.o util.o noise.o map.o db.o client.o sqlite3.o -o $(EXE) $(LIBRARY) -lglfw3 -lpng -lGLEW -lGL -lGLU -lm -lpthread -ldl -lX11 -lXxf86vm -lXrandr -lXi
 
-main.o: 
+client: 
 	$(CC) $(CFLAGS) $(INCLUDE) -c -o main.o src/main.c
-	
-util.o:
 	$(CC) $(CFLAGS) $(INCLUDE) -c -o util.o src/util.c
-	
-noise.o: 
 	$(CC) $(CFLAGS) $(INCLUDE) -c -o noise.o src/noise.c
-	
-map.o: 
 	$(CC) $(CFLAGS) $(INCLUDE) -c -o map.o src/map.c
-	
-db.o: 
 	$(CC) $(CFLAGS) $(INCLUDE) -c -o db.o src/db.c
-	
-client.o:
 	$(CC) $(CFLAGS) $(INCLUDE) -c -o client.o src/client.c
+
+server.o:
+	$(CC) -c -o server.o src/server.c
 
 sqlite3.o: 
 	$(CC) $(CFLAGS) -c -o sqlite3.o src/sqlite3/sqlite3.c

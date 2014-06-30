@@ -26,8 +26,6 @@ static int right_click = 0;
 static int flying = 0;
 static int block_type = 1;
 static int ortho = 0;
-static int port = 8887;
-static char *address = "127.0.0.1";
 
 typedef struct {
     Map map;

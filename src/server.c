@@ -8,11 +8,16 @@
 #include <sys/types.h> 
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include "db.h"
+#include <arpa/inet.h>
 #include "sqlite3/sqlite3.h"
 
 #define BUFSIZE 2048
 #define INFO 1
+#define TRUE   1
+#define FALSE  0
+
+
+#define SERVER_DB_NAME "map.db"
 
 static int maxlen = 2048;
 
@@ -21,6 +26,10 @@ static sqlite3 *db;
 static sqlite3_stmt *insert_block_stmt;
 static sqlite3_stmt *select_block_stmt;
 static sqlite3_stmt *update_chunk_stmt;
+
+double rand_double() {
+    return (double)rand() / (double)RAND_MAX;
+}
 
 int db_init() {
     static const char *create_query =
@@ -131,7 +140,7 @@ int db_select_block(int x, int y, int z) {
     }
 }
 
-void db_update_chunk(Map *map, int p, int q) {
+void db_server_update_chunk(int p, int q) {
     sqlite3_reset(update_chunk_stmt);
     sqlite3_bind_int(update_chunk_stmt, 1, p);
     sqlite3_bind_int(update_chunk_stmt, 2, q);
@@ -140,132 +149,149 @@ void db_update_chunk(Map *map, int p, int q) {
         int y = sqlite3_column_int(update_chunk_stmt, 1);
         int z = sqlite3_column_int(update_chunk_stmt, 2);
         int w = sqlite3_column_int(update_chunk_stmt, 3);
-        map_set(map, x, y, z, w);
+        //map_set(map, x, y, z, w);
     }
 }
-
-void write_file(int type, char *string) {
-	
-	int fd ;
-	char logbuffer[BUFSIZE*2];
-	
-	if((fd = open("get.txt", O_CREAT| O_WRONLY | O_APPEND,0644)) >= 0) {
-		switch(type) {
-			case INFO:
-				(void)sprintf(logbuffer,"[Write]: %s", string);
-				(void)write(fd,logbuffer,strlen(logbuffer)); 
-				(void)write(fd,"\n",1);      
-				break;
-		}
-		(void)close(fd);
-	}
-}
-
-void error(const char *msg)
+ 
+int main(int argc , char *argv[])
 {
-    perror(msg);
-    exit(1);
-}
-
-void listen_to_connection(int fd) {
-	char buffer[BUFSIZE*4];
-	int read_size;
-	while((read_size = recv(fd, buffer, maxlen, 0)) > 0 ) {
-		if(buffer[0] == 'B') { // Check if requesting block update
-			int p, q, x, y, z, w;
-			snprintf(buffer, 1024, "B,%d,%d,%d,%d,%d,%d\n", p, q, x, y, z, w);
-			db_insert_block(p, q, x, y, z, w);
-			// This is not a complete funtion, doesn't
-			// notify other connections of change
-		}
-		if(buffer[0] == 'C') { // Check if requesting chunk update
-			// Nothing here at the moment
-		}
-		bzero(buffer,read_size+1);
-	}
+	int opt = TRUE;
+	int master_socket , addrlen , new_socket , client_socket[10] , max_clients = 10 , activity, i , valread , sd;
+	int max_sd;
+	int port;
+	char *message = "Server\n";
+	struct sockaddr_in address;
+    float x = (rand_double() - 0.5) * 10000;
+    float z = (rand_double() - 0.5) * 10000;
+    float y = 0;
+	float rx = 0;
+	float ry = 0;
+	char buffer[1025]; 
 	
-	if(read_size == 0)
+	fd_set readfds;
+   
+	if(argc == 2) {
+		port = atoi(argv[1]);
+	} else {
+		port = 22500;
+	}
+   
+	for (i = 0; i < max_clients; i++) {
+		client_socket[i] = 0;
+	}
+      
+	if((master_socket = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
+		perror("socket failed");
+		exit(EXIT_FAILURE);
+	}
+
+	if(setsockopt(master_socket, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(opt)) < 0) {
+		perror("setsockopt");
+		exit(EXIT_FAILURE);
+	}
+
+	address.sin_family = AF_INET;
+	address.sin_addr.s_addr = INADDR_ANY;
+	address.sin_port = htons(port);
+
+	if (bind(master_socket, (struct sockaddr *)&address, sizeof(address))<0) {
+		perror("bind failed");
+		exit(EXIT_FAILURE);
+	}
+	printf("Listener on port %d\n", port);
+     
+	if (listen(master_socket, 3) < 0) {
+		perror("listen");
+		exit(EXIT_FAILURE);
+	}
+
+	printf("Initializing map database...\n");
+	if (db_init()) {
+        return -1;
+    }
+    
+	addrlen = sizeof(address);
+	printf("Waiting for connections...\n");
+     
+	while(1)
 	{
-		//fflush(stdout);
-		write_file(INFO, "Client closed socket.");
-		exit(0);
-	}
-	else if(read_size == -1)
-	{
-		write_file(INFO, "Failed to receive data from socket.");
-		exit(1);
-	}
-	
-	exit(0);
-}
+		FD_ZERO(&readfds);
+		FD_SET(master_socket, &readfds);
+		max_sd = master_socket;
 
-int main(int argc, char **argv)
-{
-	int i, port, pid, listenfd, socketfd, hit;
-	socklen_t length;
-	static struct sockaddr_in cli_addr; 
-	static struct sockaddr_in serv_addr;
-
-	if( argc < 2  || argc > 2 || !strcmp(argv[1], "-?") ) {
-		printf("No port specified\n");
-		exit(1);
-	}
-
-	printf("Starting server...\n");
-
-	if(fork() != 0)
-		return 1; 
-	(void)signal(SIGCLD, SIG_IGN); 
-	(void)signal(SIGHUP, SIG_IGN); 
-	for(i=0;i<32;i++)
-		(void)close(i);	
-	(void)setpgrp();	
-
-	if((listenfd = socket(AF_INET, SOCK_STREAM,0)) <0) {
-		write_file(INFO, "Failed to open socket");
-		return -1;
-	}
-		
-	port = atoi(argv[1]);
-	if(port < 0 || port >60000) {
-		write_file(INFO, "Failed to start on port");
-		return -1;
-	}
-		
-	//printf("Setting up socket...\n");
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	serv_addr.sin_port = htons(port);
-	if(bind(listenfd, (struct sockaddr *)&serv_addr,sizeof(serv_addr)) <0) {
-		write_file(INFO, "Failed to bind to port");
-		return -1;
-	}
-	
-	if( listen(listenfd,64) <0) {
-		write_file(INFO, "Failed to listen to socket");
-		return -1;
-	}
-
-	for(hit=1; ;hit++) {
-		length = sizeof(cli_addr);
-		if((socketfd = accept(listenfd, (struct sockaddr *)&cli_addr, &length)) < 0) {
-			write_file(INFO, "Failed to accept connection...");
-			return -1;
+		for ( i = 0 ; i < max_clients ; i++)
+		{
+			sd = client_socket[i];
+			if(sd > 0) { FD_SET(sd , &readfds); }
+			if(sd > max_sd) { max_sd = sd; }
 		}
 
-		if((pid = fork()) < 0) {
-			write_file(INFO, "Failed to fork()");
-			return -1;
+		activity = select( max_sd + 1 , &readfds , NULL , NULL , NULL);
+	
+		if ((activity < 0) && (errno!=EINTR)) {
+			printf("select error");
 		}
-		else {
-			if(pid == 0) {
-				(void)close(listenfd);
-				listen_to_connection(socketfd);
-			} else {
-				(void)close(socketfd);
+          
+		if (FD_ISSET(master_socket, &readfds)) {
+			if ((new_socket = accept(master_socket, (struct sockaddr *)&address, (socklen_t*)&addrlen))<0) {
+				perror("accept");
+				exit(EXIT_FAILURE);
+			}
+         
+			printf("New connection, socket fd is %d, ip is: %s, port: %d\n" , new_socket , inet_ntoa(address.sin_addr) , ntohs(address.sin_port));
+			if(send(new_socket, message, strlen(message), 0) != strlen(message)) {
+				perror("send");
+			}
+
+			for (i = 0; i < max_clients; i++) {
+				if( client_socket[i] == 0 ) {
+					client_socket[i] = new_socket;
+					printf("Adding new connection to list of sockets as %d\n", i);  
+					write(client_socket[i],"U,0,0,10,0",10); // send client position
+					break;
+				}
+			}
+		}
+          
+		for (i = 0; i < max_clients; i++) {
+			sd = client_socket[i];
+			if (FD_ISSET(sd , &readfds)) {
+				if ((valread = recv(sd , buffer, 1024, 0)) > 0) {
+					if(buffer[0] == 'B') { 
+						// Check if requesting block update
+						int p, q, x, y, z, w;
+						snprintf(buffer, 1024, "B,%d,%d,%d,%d,%d,%d\n", p, q, x, y, z, w);
+						db_insert_block(p, q, x, y, z, w);
+						for (i = 0; i < max_sd; i++) {
+							write(client_socket[i],buffer,strlen(buffer));
+						}
+					}
+					if(buffer[0] == 'C') { 
+						// Check if requesting block update
+						int p, q, x, y, z, w;
+						snprintf(buffer, 1024, "C,%d,%d\n", p, q);
+						db_server_update_chunk(p, q);
+						for (i = 0; i < max_sd; i++) {
+							write(client_socket[i],buffer,strlen(buffer));
+						}
+					}
+					bzero(buffer,valread+1);
+				} else if(valread == 0) {
+					getpeername(sd , (struct sockaddr*)&address, 
+							(socklen_t*)&addrlen);
+					printf("%s:%d disconnected\n", inet_ntoa(address.sin_addr), ntohs(address.sin_port));
+					close(sd);
+					client_socket[i] = 0;
+				} else {
+					printf("%s:%d disconnected: socket error\n", inet_ntoa(address.sin_addr), ntohs(address.sin_port));
+				}
 			}
 		}
 	}
+	printf("Saving map state...\n");
+    db_save_state(x, y, z, rx, ry);
+    printf("Closing map database...\n");
+    db_close(); 
 	return 0;
-}
+} 
 
