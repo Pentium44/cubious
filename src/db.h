@@ -4,6 +4,7 @@
 #include "map.h"
 
 #define DB_NAME "craft.db"
+#define SERVER_DB_NAME "map.db"
 
 void db_enable();
 void db_disable();
