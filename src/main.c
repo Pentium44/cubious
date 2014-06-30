@@ -437,7 +437,7 @@ void update_chunk(Chunk *chunk) {
 
 void make_chunk(Chunk *chunk, int p, int q) {
 	char buffer[1024];
-	printf("Client -> Server: Requesting chunk creation\n");
+	printf("Client -> Server: Requesting chunk creation [%d, %d]\n", p, q);
 	snprintf(buffer, 1024, "C,%d,%d\n", p, q);
 	client_send(buffer);
     chunk->p = p;

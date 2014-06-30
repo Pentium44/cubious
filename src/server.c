@@ -248,7 +248,7 @@ int main(int argc , char *argv[])
 				if( client_socket[i] == 0 ) {
 					client_socket[i] = new_socket;
 					printf("Adding new connection to list of sockets as %d\n", i);  
-					write(client_socket[i],"U,0,0,10,0",10); // send client position
+					write(client_socket[i],"U,0,10,0",8); // send client position
 					break;
 				}
 			}
@@ -261,9 +261,10 @@ int main(int argc , char *argv[])
 					if(buffer[0] == 'B') { 
 						// Check if requesting block update
 						int p, q, x, y, z, w;
-						snprintf(buffer, 1024, "B,%d,%d,%d,%d,%d,%d\n", p, q, x, y, z, w);
-						printf("Client -> Server: Requested block change to %d at %d, %d, %d\n", w, x, y, z);
+						printf("Client -> Server: Requested block change\n");
+						sscanf(buffer, "B,%d,%d,%d,%d,%d,%d\n", &p, &q, &x, &y, &z, &w);
 						db_insert_block(p, q, x, y, z, w);
+						snprintf(buffer, 1024, "B,%d,%d,%d,%d,%d,%d\n", p, q, x, y, z, w);
 						for (i = 0; i < max_sd; i++) {
 							if (client_socket[i] != 0) {
 								write(client_socket[i],buffer,strlen(buffer));
@@ -274,8 +275,9 @@ int main(int argc , char *argv[])
 						// Check if requesting block update
 						int p, q, x, y, z, w;
 						printf("Client -> Server: Requested chunk update\n");
-						snprintf(buffer, 1024, "C,%d,%d\n", p, q);
+						sscanf(buffer, "C,%d,%d\n", &p, &q);
 						db_server_update_chunk(p, q);
+						snprintf(buffer, 1024, "C,%d,%d,%d,%d,%d,%d\n", p, q, cx, cy, cz, cw);
 						for (i = 0; i < max_sd; i++) {
 							if (client_socket[i] != 0) {
 								write(client_socket[i],buffer,strlen(buffer));
