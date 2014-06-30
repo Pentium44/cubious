@@ -812,8 +812,9 @@ int main(int argc, char **argv) {
 				y = highest_block(chunks, chunk_count, x, z) + 2;
 			}
 			if(buffer[0] == 'B') {
-				int bx, by, bz, bw;
-				sscanf(buffer, "B,%*d,%*d,%d,%d,%d,%d", &bx, &by, &bz, &bw);
+				int bp, bq, bx, by, bz, bw;
+				sscanf(buffer, "B,%d,%d,%d,%d,%d,%d", &bp, &bq, &bx, &by, &bz, &bw);
+				printf("Server -> Client: Block update at [%d, %d, %d]\n", bx, by, bz);
 				set_block(chunks, chunk_count, bx, by, bz, bw);
 			}
 		}

@@ -160,6 +160,7 @@ int main(int argc , char *argv[])
 	int master_socket , addrlen , new_socket , client_socket[10] , max_clients = 10 , activity, i , valread , sd;
 	int max_sd;
 	int port;
+	int client_id;
 	char *message = "Server\n";
 	struct sockaddr_in address;
     float x = (rand_double() - 0.5) * 10000;
@@ -213,7 +214,7 @@ int main(int argc , char *argv[])
     
 	addrlen = sizeof(address);
 	printf("Waiting for connections...\n");
-     
+    db_load_state(&x, &y, &z, &rx, &ry);
 	while(1)
 	{
 		FD_ZERO(&readfds);
@@ -247,6 +248,7 @@ int main(int argc , char *argv[])
 			for (i = 0; i < max_clients; i++) {
 				if( client_socket[i] == 0 ) {
 					client_socket[i] = new_socket;
+					client_id = i ;
 					printf("Adding new connection to list of sockets as %d\n", i);  
 					write(client_socket[i],"U,0,10,0",8); // send client position
 					break;
@@ -261,7 +263,7 @@ int main(int argc , char *argv[])
 					if(buffer[0] == 'B') { 
 						// Check if requesting block update
 						int p, q, x, y, z, w;
-						printf("Client -> Server: Requested block change\n");
+						printf("'%s' requested block change to %d at [%d, %d, %d]\n", inet_ntoa(address.sin_addr), w, x, y, z);
 						sscanf(buffer, "B,%d,%d,%d,%d,%d,%d\n", &p, &q, &x, &y, &z, &w);
 						db_insert_block(p, q, x, y, z, w);
 						snprintf(buffer, 1024, "B,%d,%d,%d,%d,%d,%d\n", p, q, x, y, z, w);
@@ -274,8 +276,8 @@ int main(int argc , char *argv[])
 					if(buffer[0] == 'C') { 
 						// Check if requesting block update
 						int p, q, x, y, z, w;
-						printf("Client -> Server: Requested chunk update\n");
 						sscanf(buffer, "C,%d,%d\n", &p, &q);
+						printf("'%s' requested chunk update at [%d, %d]\n",inet_ntoa(address.sin_addr), p, q);
 						db_server_update_chunk(p, q);
 						snprintf(buffer, 1024, "C,%d,%d,%d,%d,%d,%d\n", p, q, cx, cy, cz, cw);
 						for (i = 0; i < max_sd; i++) {
@@ -284,15 +286,16 @@ int main(int argc , char *argv[])
 							}
 						}
 					}
-					bzero(buffer,sizeof(buffer));
+					bzero(buffer,valread);
 				} else if(valread == 0) {
-					getpeername(sd , (struct sockaddr*)&address, 
-							(socklen_t*)&addrlen);
+					getpeername(sd , (struct sockaddr*)&address, (socklen_t*)&addrlen);
 					printf("%s:%d disconnected\n", inet_ntoa(address.sin_addr), ntohs(address.sin_port));
+					db_save_state(x, y, z, rx, ry);// Save database state
 					close(sd);
 					client_socket[i] = 0;
 				} else {
 					printf("%s:%d disconnected: socket error\n", inet_ntoa(address.sin_addr), ntohs(address.sin_port));
+					db_save_state(x, y, z, rx, ry);// Save database state
 				}
 			}
 		}
