@@ -274,7 +274,7 @@ int main(int argc , char *argv[])
 						// Check if requesting block update
 						int p, q, x, y, z, w;
 						printf("Client -> Server: Requested chunk update\n");
-						snprintf(buffer, 1024, "C,%d,%d,%d,%d,%d,%d\n", p, q, x, y, z, w);
+						snprintf(buffer, 1024, "C,%d,%d\n", p, q);
 						db_server_update_chunk(p, q);
 						for (i = 0; i < max_sd; i++) {
 							if (client_socket[i] != 0) {
