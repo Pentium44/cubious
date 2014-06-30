@@ -209,6 +209,7 @@ void client_stop() {
     if (!connection_status) {
         return;
     }
+    close(fd);
     // if (pthread_join(send_thread, NULL)) {
     //     perror("pthread_join");
     //     exit(1);
