@@ -437,6 +437,7 @@ void update_chunk(Chunk *chunk) {
 
 void make_chunk(Chunk *chunk, int p, int q) {
 	char buffer[1024];
+	printf("Client -> Server: Requesting chunk creation\n");
 	snprintf(buffer, 1024, "C,%d,%d\n", p, q);
 	client_send(buffer);
     chunk->p = p;
@@ -538,6 +539,7 @@ void set_block(Chunk *chunks, int chunk_count, int x, int y, int z, int w) {
     int p = floorf((float)x / CHUNK_SIZE);
     int q = floorf((float)z / CHUNK_SIZE);
     char buffer[1024];
+    printf("Client -> Server: Requesting block change to %d at %d, %d, %d\n", w, x, y, z);
     snprintf(buffer, 1024, "B,%d,%d,%d,%d,%d,%d\n", p, q, x, y, z, w);
     client_send(buffer);
     _set_block(chunks, chunk_count, p, q, x, y, z, w);

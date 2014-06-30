@@ -22,6 +22,7 @@
 static int maxlen = 2048;
 
 static int db_enabled = 1;
+static int cw, cx, cy, cz;
 static sqlite3 *db;
 static sqlite3_stmt *insert_block_stmt;
 static sqlite3_stmt *select_block_stmt;
@@ -145,10 +146,10 @@ void db_server_update_chunk(int p, int q) {
     sqlite3_bind_int(update_chunk_stmt, 1, p);
     sqlite3_bind_int(update_chunk_stmt, 2, q);
     while (sqlite3_step(update_chunk_stmt) == SQLITE_ROW) {
-        int x = sqlite3_column_int(update_chunk_stmt, 0);
-        int y = sqlite3_column_int(update_chunk_stmt, 1);
-        int z = sqlite3_column_int(update_chunk_stmt, 2);
-        int w = sqlite3_column_int(update_chunk_stmt, 3);
+		cx = sqlite3_column_int(update_chunk_stmt, 0);
+		cy = sqlite3_column_int(update_chunk_stmt, 1);
+		cz = sqlite3_column_int(update_chunk_stmt, 2);
+        cw = sqlite3_column_int(update_chunk_stmt, 3);
         //map_set(map, x, y, z, w);
     }
 }
@@ -261,21 +262,27 @@ int main(int argc , char *argv[])
 						// Check if requesting block update
 						int p, q, x, y, z, w;
 						snprintf(buffer, 1024, "B,%d,%d,%d,%d,%d,%d\n", p, q, x, y, z, w);
+						printf("Client -> Server: Requested block change to %d at %d, %d, %d\n", w, x, y, z);
 						db_insert_block(p, q, x, y, z, w);
 						for (i = 0; i < max_sd; i++) {
-							write(client_socket[i],buffer,strlen(buffer));
+							if (client_socket[i] != 0) {
+								write(client_socket[i],buffer,strlen(buffer));
+							}
 						}
 					}
 					if(buffer[0] == 'C') { 
 						// Check if requesting block update
 						int p, q, x, y, z, w;
-						snprintf(buffer, 1024, "C,%d,%d\n", p, q);
+						printf("Client -> Server: Requested chunk update\n");
+						snprintf(buffer, 1024, "C,%d,%d,%d,%d,%d,%d\n", p, q, x, y, z, w);
 						db_server_update_chunk(p, q);
 						for (i = 0; i < max_sd; i++) {
-							write(client_socket[i],buffer,strlen(buffer));
+							if (client_socket[i] != 0) {
+								write(client_socket[i],buffer,strlen(buffer));
+							}
 						}
 					}
-					bzero(buffer,valread+1);
+					bzero(buffer,sizeof(buffer));
 				} else if(valread == 0) {
 					getpeername(sd , (struct sockaddr*)&address, 
 							(socklen_t*)&addrlen);

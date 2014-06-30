@@ -13,7 +13,7 @@ run: all
 	./$(EXE)
 
 clean:
-	rm *.o $(EXE) #(SERVEXE)
+	rm *.o $(EXE) $(SERVEXE)
 
 server: sqlite3.o server.o
 	$(CC) $(CFLAGS) server.o sqlite3.o -o $(SERVEXE)  $(SERVFLAGS)
