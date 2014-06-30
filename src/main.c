@@ -438,6 +438,9 @@ void update_chunk(Chunk *chunk) {
 }
 
 void make_chunk(Chunk *chunk, int p, int q) {
+	char buffer[1024];
+	snprintf(buffer, 1024, "C,%d,%d\n", p, q);
+	client_send(buffer);
     chunk->p = p;
     chunk->q = q;
     chunk->faces = 0;
@@ -524,18 +527,21 @@ void _set_block(
         update_chunk(chunk);
     }
     /*
-		Test server connection
+		Test server connection - OLD
     */
     
-    if(client_connected) {
-		client_send(x, y, z, p, q, w);
-	}
+    //if(client_connected) {
+	//	client_send(x, y, z, p, q, w);
+	//}
     db_insert_block(p, q, x, y, z, w);
 }
 
 void set_block(Chunk *chunks, int chunk_count, int x, int y, int z, int w) {
     int p = floorf((float)x / CHUNK_SIZE);
     int q = floorf((float)z / CHUNK_SIZE);
+    char buffer[1024];
+    snprintf(buffer, 1024, "B,%d,%d,%d,%d,%d,%d\n", p, q, x, y, z, w);
+    client_send(buffer);
     _set_block(chunks, chunk_count, p, q, x, y, z, w);
     w = w ? -1 : 0;
     int p0 = x == p * CHUNK_SIZE;
@@ -610,6 +616,14 @@ void create_window() {
 int main(int argc, char **argv) {
     srand(time(NULL));
     rand();
+    if(argc == 2 || argc == 3) {
+		char *hostname = argv[1];
+		int port = atoi(argv[2]);
+		db_disable();
+		client_enable();
+		client_connect(hostname, port);
+		client_start();
+	}
     if (!glfwInit()) {
         return -1;
     }
@@ -682,9 +696,12 @@ int main(int argc, char **argv) {
     double py = 0;
 
     int loaded = db_load_state(&x, &y, &z, &rx, &ry);
-    ensure_chunks(chunks, &chunk_count,
-        floorf(roundf(x) / CHUNK_SIZE),
-        floorf(roundf(z) / CHUNK_SIZE), 1);
+    // Check if connected to a server or not
+    if(!get_client_enabled()) {
+		ensure_chunks(chunks, &chunk_count,
+			floorf(roundf(x) / CHUNK_SIZE),
+			floorf(roundf(z) / CHUNK_SIZE), 1);
+	}
     if (!loaded) {
         y = highest_block(chunks, chunk_count, x, z) + 2;
     }
@@ -693,7 +710,7 @@ int main(int argc, char **argv) {
     double previous = glfwGetTime();
     
     /*
-		Test server connection
+		Test server connection - OLD
     */
     //client_connect(address, port);
     
@@ -783,6 +800,24 @@ int main(int argc, char **argv) {
             }
         }
 
+		// If connected to a server, secure chunks and update
+		//   from the server, not local database
+		char buffer[1024];
+		while (client_recv(buffer)) {
+			if (buffer[0] == 'U') {
+				sscanf(buffer, "U,%*d,%f,%f,%f", &x, &y, &z);
+				ensure_chunks(chunks, &chunk_count,
+					floorf(roundf(x) / CHUNK_SIZE),
+					floorf(roundf(z) / CHUNK_SIZE), 1);
+				y = highest_block(chunks, chunk_count, x, z) + 2;
+			}
+			if(buffer[0] == 'B') {
+				int bx, by, bz, bw;
+				sscanf(buffer, "B,%*d,%*d,%d,%d,%d,%d", &bx, &by, &bz, &bw);
+				set_block(chunks, chunk_count, bx, by, bz, bw);
+			}
+		}
+
         int p = floorf(roundf(x) / CHUNK_SIZE);
         int q = floorf(roundf(z) / CHUNK_SIZE);
         ensure_chunks(chunks, &chunk_count, p, q, 0);
@@ -815,9 +850,9 @@ int main(int argc, char **argv) {
             glLineWidth(1);
             glEnable(GL_COLOR_LOGIC_OP);
             glUniformMatrix4fv(line_matrix_loc, 1, GL_FALSE, matrix);
-            GLuint buffer = make_cube_buffer(hx, hy, hz, 0.51);
-            draw_lines(buffer, line_position_loc, 3, 48);
-            glDeleteBuffers(1, &buffer);
+            GLuint cube_buffer = make_cube_buffer(hx, hy, hz, 0.51);
+            draw_lines(cube_buffer, line_position_loc, 3, 48);
+            glDeleteBuffers(1, &cube_buffer);
             glDisable(GL_COLOR_LOGIC_OP);
         }
 
@@ -828,9 +863,9 @@ int main(int argc, char **argv) {
         glLineWidth(4);
         glEnable(GL_COLOR_LOGIC_OP);
         glUniformMatrix4fv(line_matrix_loc, 1, GL_FALSE, matrix);
-        GLuint buffer = make_line_buffer();
-        draw_lines(buffer, line_position_loc, 2, 4);
-        glDeleteBuffers(1, &buffer);
+        GLuint line_buffer = make_line_buffer();
+        draw_lines(line_buffer, line_position_loc, 2, 4);
+        glDeleteBuffers(1, &line_buffer);
         glDisable(GL_COLOR_LOGIC_OP);
 
         glfwSwapBuffers(window);

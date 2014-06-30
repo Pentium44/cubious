@@ -2,7 +2,7 @@
 #include "db.h"
 #include "sqlite3/sqlite3.h"
 
-static ubt db_enabled = 1;
+static int db_enabled = 1;
 static sqlite3 *db;
 static sqlite3_stmt *insert_block_stmt;
 static sqlite3_stmt *select_block_stmt;
@@ -14,6 +14,10 @@ void db_enable() {
 
 void db_disable() {
 	db_enabled = 0;
+}
+
+int get_db_enabled() {
+	return db_enabled;
 }
 
 int db_init() {
@@ -95,7 +99,7 @@ void db_save_state(float x, float y, float z, float rx, float ry) {
 
 int db_load_state(float *x, float *y, float *z, float *rx, float *ry) {
 	if(!db_enabled) {
-		return;
+		return 0;
 	}
     static const char *query =
         "select x, y, z, rx, ry from state;";
@@ -130,7 +134,7 @@ void db_insert_block(int p, int q, int x, int y, int z, int w) {
 
 int db_select_block(int x, int y, int z) {
 	if(!db_enabled) {
-		return;
+		return 0;
 	}
     sqlite3_reset(select_block_stmt);
     sqlite3_bind_int(select_block_stmt, 1, x);
