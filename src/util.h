@@ -26,7 +26,14 @@ typedef struct {
 int rand_int(int n);
 double rand_double();
 void update_fps(FPS *fps, int show);
-
+void malloc_buffers(
+	int components, int faces,
+	GLfloat **position_data, GLfloat **normal_data, GLfloat **uv_data);
+GLuint gen_buffer(GLenum target, GLsizei size, const void *data);
+void gen_buffers(
+	int components, int faces,
+	GLfloat *position_data, GLfloat *normal_data, GLfloat *uv_data,
+	GLuint *position_buffer, GLuint *normal_buffer, GLuint *uv_buffer);
 GLuint make_buffer(GLenum target, GLsizei size, const void *data);
 GLuint make_shader(GLenum type, const char *source);
 GLuint load_shader(GLenum type, const char *path);
@@ -55,8 +62,10 @@ void make_cube(
     float *vertex, float *normal, float *texture,
     int left, int right, int top, int bottom, int front, int back,
     float x, float y, float z, float n, int w);
+void make_character(
+	float *vertex, float *texture,
+	float x, float y, float n, float m, char c);
 void make_cube_wireframe(float *vertex, float x, float y, float z, float n);
-
 void load_png_texture(const char *file_name);
 
 #endif

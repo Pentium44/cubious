@@ -569,6 +569,93 @@ void make_cube_wireframe(float *vertex, float x, float y, float z, float n) {
     *(v++) = x - n; *(v++) = y - n; *(v++) = z + n;
 }
 
+void make_character(
+	float *vertex, float *texture,
+	float x, float y, float n, float m, char c)
+{
+	float *v = vertex;
+	float *t = texture;
+	float s = 0.0625;
+	float a = s;
+	float b = s * 2;
+	int w = c - 32;
+	float du = (w % 16) * a;
+	float dv = 1 - (w / 16) * b - b;
+	float p = 0;
+	*(v++) = x - n; *(v++) = y - m;
+	*(v++) = x + n; *(v++) = y - m;
+	*(v++) = x + n; *(v++) = y + m;
+	*(v++) = x - n; *(v++) = y - m;
+	*(v++) = x + n; *(v++) = y + m;
+	*(v++) = x - n; *(v++) = y + m;
+	*(t++) = du + 0; *(t++) = dv + p;
+	*(t++) = du + a; *(t++) = dv + p;
+	*(t++) = du + a; *(t++) = dv + b - p;
+	*(t++) = du + 0; *(t++) = dv + p;
+	*(t++) = du + a; *(t++) = dv + b - p;
+	*(t++) = du + 0; *(t++) = dv + b - p;
+}
+
+// Buffer functions backported from craft
+// For font-texturing
+void malloc_buffers(
+	int components, int faces,
+	GLfloat **position_data, GLfloat **normal_data, GLfloat **uv_data)
+{
+	if (position_data) {
+		*position_data = malloc(sizeof(GLfloat) * faces * 6 * components);
+	}
+	if (normal_data) {
+		*normal_data = malloc(sizeof(GLfloat) * faces * 6 * components);
+	}
+	if (uv_data) {
+		*uv_data = malloc(sizeof(GLfloat) * faces * 6 * 2);
+	}
+}
+
+GLuint gen_buffer(GLenum target, GLsizei size, const void *data) {
+    GLuint buffer;
+    glGenBuffers(1, &buffer);
+    glBindBuffer(target, buffer);
+    glBufferData(target, size, data, GL_STATIC_DRAW);
+    glBindBuffer(target, 0);
+    return buffer;
+}
+
+void gen_buffers(
+	int components, int faces,
+	GLfloat *position_data, GLfloat *normal_data, GLfloat *uv_data,
+	GLuint *position_buffer, GLuint *normal_buffer, GLuint *uv_buffer)
+{
+	if (position_buffer) {
+		glDeleteBuffers(1, position_buffer);
+		*position_buffer = gen_buffer(
+			GL_ARRAY_BUFFER,
+			sizeof(GLfloat) * faces * 6 * components,
+			position_data
+		);
+		free(position_data);
+	}
+	if (normal_buffer) {
+		glDeleteBuffers(1, normal_buffer);
+		*normal_buffer = gen_buffer(
+			GL_ARRAY_BUFFER,
+			sizeof(GLfloat) * faces * 6 * components,
+			normal_data
+		);
+		free(normal_data);
+	}
+	if (uv_buffer) {
+		glDeleteBuffers(1, uv_buffer);
+		*uv_buffer = gen_buffer(
+			GL_ARRAY_BUFFER,
+			sizeof(GLfloat) * faces * 6 * 2,
+			uv_data
+		);
+		free(uv_data);
+	}
+}
+
 // From craft code
 void load_png_texture(const char *file_name) {
     png_byte header[8];

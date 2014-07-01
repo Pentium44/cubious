@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 #include "db.h"
 #include "map.h"
 #include "noise.h"
@@ -18,6 +19,7 @@
 #define CREATE_CHUNK_RADIUS 6
 #define RENDER_CHUNK_RADIUS 6
 #define DELETE_CHUNK_RADIUS 8
+#define TEXT_BUFFER_SIZE 256
 
 static GLFWwindow *window;
 static int exclusive = 1;
@@ -26,6 +28,7 @@ static int right_click = 0;
 static int flying = 0;
 static int block_type = 1;
 static int ortho = 0;
+char message[TEXT_BUFFER_SIZE] = {0};
 
 typedef struct {
     Map map;
@@ -159,6 +162,61 @@ int chunk_distance(Chunk *chunk, int p, int q) {
     int dp = ABS(chunk->p - p);
     int dq = ABS(chunk->q - q);
     return MAX(dp, dq);
+}
+
+// Text buffer - Render textured text - Backported from craft
+void gen_text_buffers(
+	GLuint *position_buffer, GLuint *uv_buffer,
+	float x, float y, float n, float m, char *text)
+{
+	int length = strlen(text);
+	GLfloat *position_data, *uv_data;
+	malloc_buffers(2, length, &position_data, 0, &uv_data);
+	for (int i = 0; i < length; i++) {
+		make_character(
+			position_data + i * 12,
+			uv_data + i * 12,
+			x, y, n, m, text[i]);
+		x += n * 2;
+	}
+	gen_buffers(
+		2, length, position_data, 0, uv_data,
+		position_buffer, 0, uv_buffer);
+}
+
+void draw_text(
+	GLuint position_buffer, GLuint uv_buffer,
+	GLuint position_loc, GLuint uv_loc, int length)
+{
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnableVertexAttribArray(position_loc);
+	glEnableVertexAttribArray(uv_loc);
+	glBindBuffer(GL_ARRAY_BUFFER, position_buffer);
+	glVertexAttribPointer(position_loc, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glBindBuffer(GL_ARRAY_BUFFER, uv_buffer);
+	glVertexAttribPointer(uv_loc, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glDrawArrays(GL_TRIANGLES, 0, length * 6);
+	glDisableVertexAttribArray(position_loc);
+	glDisableVertexAttribArray(uv_loc);
+	glDisable(GL_BLEND);
+}
+
+void print(
+	GLuint position_loc, GLuint uv_loc,
+	float x, float y, float n, char *text)
+{
+	GLuint position_buffer = 0;
+	GLuint uv_buffer = 0;
+	gen_text_buffers(
+		&position_buffer, &uv_buffer,
+		x, y, n, n * 2, text);
+	draw_text(
+		position_buffer, uv_buffer,
+		position_loc, uv_loc, strlen(text));
+	glDeleteBuffers(1, &position_buffer);
+	glDeleteBuffers(1, &uv_buffer);
 }
 
 int chunk_visible(Chunk *chunk, float *matrix) {
@@ -665,7 +723,15 @@ int main(int argc, char **argv) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     load_png_texture("texture.png");
-
+	
+	GLuint font;
+	glGenTextures(1, &font);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, font);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	load_png_texture("font.png");
+	
     //GLuint block_program; 
     GLuint block_program = load_program("shaders/block_vertex.glsl", "shaders/block_fragment.glsl");
     GLuint matrix_loc = glGetUniformLocation(block_program, "matrix");
@@ -681,6 +747,14 @@ int main(int argc, char **argv) {
     GLuint line_matrix_loc = glGetUniformLocation(line_program, "matrix");
     GLuint line_position_loc = glGetAttribLocation(line_program, "position");
 
+	GLuint text_program = load_program("shaders/text_vertex.glsl", "shaders/text_fragment.glsl");
+	GLuint text_matrix_loc = glGetUniformLocation(text_program, "matrix");
+	GLuint text_sampler_loc = glGetUniformLocation(text_program, "sampler");
+	GLuint text_position_loc = glGetAttribLocation(text_program, "position");
+	GLuint text_uv_loc = glGetAttribLocation(text_program, "uv");
+
+	
+
     Chunk chunks[MAX_CHUNKS];
     int chunk_count = 0;
 
@@ -694,7 +768,9 @@ int main(int argc, char **argv) {
     float ry = 0;
     double px = 0;
     double py = 0;
-
+	int width, height;
+    glfwGetWindowSize(window, &width, &height);
+    
     int loaded = db_load_state(&x, &y, &z, &rx, &ry);
     // Check if connected to a server or not
     if(!get_client_enabled()) {
@@ -817,6 +893,11 @@ int main(int argc, char **argv) {
 				printf("Server -> Client: Block update at [%d, %d, %d]\n", bx, by, bz);
 				set_block(chunks, chunk_count, bx, by, bz, bw);
 			}
+			if (buffer[0] == 'T' && buffer[1] == ',') {
+                char *text = buffer + 2;
+                printf("%s\n", text);
+                snprintf(message, TEXT_BUFFER_SIZE, "%s", text);
+            }
 		}
 
         int p = floorf(roundf(x) / CHUNK_SIZE);
@@ -871,6 +952,24 @@ int main(int argc, char **argv) {
 
         glfwSwapBuffers(window);
         glfwPollEvents();
+        
+        // render text
+        update_matrix_2d(matrix);
+		glUseProgram(text_program);
+        glUniformMatrix4fv(text_matrix_loc, 1, GL_FALSE, matrix);
+        glUniform1i(text_sampler_loc, 1);
+        char text_buffer[1024];
+    
+        //snprintf(
+        //    text_buffer, 1024, "%d, %d, %.2f, %.2f, %.2f [%d, %d]",
+        //    p, q, x, y, z, player_count, chunk_count);
+        //print(
+        //    text_position_loc, text_uv_loc,
+        //    6, height - 12, 6, text_buffer);
+        print(
+            text_position_loc, text_uv_loc,
+            6, height - 36, 6, message);
+    
     }
     client_stop();
     db_save_state(x, y, z, rx, ry);
