@@ -221,6 +221,18 @@ void client_stop() {
     pthread_mutex_destroy(&mutex);
 }
 
+void client_talk(char *text) {
+	if (!get_client_enabled) {
+		return;
+	}
+	if (strlen(text) == 0) {
+		return;
+	}
+	char buffer[1024];
+	snprintf(buffer, 1024, "T,%s\n", text);
+	client_send(buffer);
+}
+
 // int main(int argc, char **argv) {
 //     client_connect(HOST, PORT);
 //     client_start();

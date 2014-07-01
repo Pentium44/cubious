@@ -15,20 +15,6 @@ double rand_double() {
     return (double)rand() / (double)RAND_MAX;
 }
 
-void update_fps(FPS *fps, int show) {
-    fps->frames++;
-    double now = glfwGetTime();
-    double elapsed = now - fps->since;
-    if (elapsed >= 1) {
-        int result = fps->frames / elapsed;
-        fps->frames = 0;
-        fps->since = now;
-        if (show) {
-            printf("FPS: %d\n", result);
-        }
-    }
-}
-
 char *load_file(const char *path) {
     FILE *file = fopen(path, "rb");
     fseek(file, 0, SEEK_END);

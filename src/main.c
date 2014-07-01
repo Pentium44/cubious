@@ -28,7 +28,9 @@ static int right_click = 0;
 static int flying = 0;
 static int block_type = 1;
 static int ortho = 0;
+static int typing = 0;
 char message[TEXT_BUFFER_SIZE] = {0};
+char typing_buffer[TEXT_BUFFER_SIZE] = {0};
 
 typedef struct {
     Map map;
@@ -623,17 +625,60 @@ void on_key(GLFWwindow *window, int key, int scancode, int action, int mods) {
         return;
     }
     if (key == GLFW_KEY_ESCAPE) {
+		if (typing) {
+            typing = 0;
+        }
         if (exclusive) {
             exclusive = 0;
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         }
     }
+    if (key == GLFW_KEY_ENTER) {
+		if (typing) {
+			typing = 0;
+			client_talk(typing_buffer);
+			printf("\n");
+		}
+    }
+	if (key == GLFW_KEY_BACKSPACE) {
+		if (typing) {
+			int n = strlen(typing_buffer);
+			if (n > 0) {
+				typing_buffer[n - 1] = '\0';
+				printf("\b \b");
+				fflush(stdout);
+			}
+		}
+	}
     if (key == GLFW_KEY_TAB) {
         flying = !flying;
     }
     if (key == 'E') {
 		block_type = block_type % 8 + 1;
 		printf("Block ID: %d\n",block_type);	
+	}
+}
+
+void on_char(GLFWwindow *window, unsigned int u) {
+	if (typing) {
+		if (u >= 32 && u < 128) {
+			char c = (char)u;
+			int n = strlen(typing_buffer);
+			if (n < TEXT_BUFFER_SIZE - 1) {
+				typing_buffer[n] = c;
+				typing_buffer[n + 1] = '\0';
+				printf("%c", c);
+				fflush(stdout);
+			}
+		}
+	}
+	else {
+		if (u == 116) { // 't'
+			typing = 1;
+			typing_buffer[0] = '\0';
+			printf("> ");
+			fflush(stdout);
+		}
 	}
 }
 
@@ -671,6 +716,20 @@ void create_window() {
 	window = glfwCreateWindow(1024, 768, "Cubious", NULL, NULL);
 }
 
+void update_fps(FPS *fps, int show) {
+    fps->frames++;
+    double now = glfwGetTime();
+    double elapsed = now - fps->since;
+    if (elapsed >= 1) {
+        int result = fps->frames / elapsed;
+        fps->frames = 0;
+        fps->since = now;
+        if (show) {
+            snprintf(message,TEXT_BUFFER_SIZE,"FPS: %d\n",result);
+        }
+    }
+}
+
 int main(int argc, char **argv) {
     srand(time(NULL));
     rand();
@@ -694,6 +753,7 @@ int main(int argc, char **argv) {
     glfwSwapInterval(VSYNC);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetKeyCallback(window, on_key);
+    glfwSetCharCallback(window, on_char);
     glfwSetMouseButtonCallback(window, on_mouse_button);
 
     #ifndef __APPLE__
@@ -843,15 +903,17 @@ int main(int argc, char **argv) {
 
         int sz = 0;
         int sx = 0;
-        ortho = glfwGetKey(window,GLFW_KEY_LEFT_SHIFT);
-        if (glfwGetKey(window,'Q')) break;
-        if (glfwGetKey(window,'W')) sz--;
-        if (glfwGetKey(window,'S')) sz++;
-        if (glfwGetKey(window,'A')) sx--;
-        if (glfwGetKey(window,'D')) sx++;
-        if (dy == 0 && glfwGetKey(window,GLFW_KEY_SPACE)) {
-            dy = 8;
-        }
+		if(!typing) {
+			ortho = glfwGetKey(window,GLFW_KEY_LEFT_SHIFT);
+			if (glfwGetKey(window,'Q')) break;
+			if (glfwGetKey(window,'W')) sz--;
+			if (glfwGetKey(window,'S')) sz++;
+			if (glfwGetKey(window,'A')) sx--;
+			if (glfwGetKey(window,'D')) sx++;
+			if (dy == 0 && glfwGetKey(window,GLFW_KEY_SPACE)) {
+				dy = 8;
+			}
+		}
         float vx, vy, vz;
         get_motion_vector(flying, sz, sx, rx, ry, &vx, &vy, &vz);
         float speed = flying ? 20 : 5;
@@ -959,16 +1021,27 @@ int main(int argc, char **argv) {
         glUniformMatrix4fv(text_matrix_loc, 1, GL_FALSE, matrix);
         glUniform1i(text_sampler_loc, 1);
         char text_buffer[1024];
-    
-        //snprintf(
-        //    text_buffer, 1024, "%d, %d, %.2f, %.2f, %.2f [%d, %d]",
-        //    p, q, x, y, z, player_count, chunk_count);
-        //print(
-        //    text_position_loc, text_uv_loc,
-        //    6, height - 12, 6, text_buffer);
+		float ty = height - 12;
+        snprintf(
+            text_buffer, 1024, "%d, %d, %.2f, %.2f, %.2f [%d]",
+            p, q, x, y, z, chunk_count);
         print(
             text_position_loc, text_uv_loc,
-            6, height - 36, 6, message);
+            6, ty, 6, text_buffer);
+        print(
+            text_position_loc, text_uv_loc,
+            6, ty, 6, message);
+        if(strlen(message)) {
+				ty -= 24;
+				print(text_position_loc, text_uv_loc,
+					6, ty, 6, message);
+		}
+		if(typing) {
+			ty -= 24;
+			snprintf(text_buffer, 1024, "> %s", typing_buffer);
+			print(text_position_loc, text_uv_loc,
+				6, ty, 6, text_buffer);
+		}
     
     }
     client_stop();
