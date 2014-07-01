@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include "map.h"
 #include "db.h"
+#include "util.h" // random_number
 #include "noise.h"
 
 #define CHUNK_SIZE 32
@@ -148,6 +149,20 @@ void make_world(Map *map, int p, int q) {
 			if(w == 1 && simplex2(x * 0.2, z * 0.3, 4, 0.5, 2) > 0.68) {
 				map_set(map, x, h, z, 18); // write long grass to map
 			}
+			
+			// NEW - Tall grass biomes
+			// Gen tall grass biomes
+			if(w == 1 && simplex2(x * 0.014, z * 0.025, 6, 0.5, 2) > 0.78) {
+				map_set(map, x, h, z, 18);
+				map_set(map, x, h+1, z, 18);
+				
+				// Get the grass to generate at different heights
+				int check = random_number(0,1);
+				if(check) {
+					map_set(map, x, h+2, z, 18);
+				}
+			}
+			
 			
 			// Gen clouds
 			for(int y = 70; y < 78; y++) {

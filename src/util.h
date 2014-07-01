@@ -25,6 +25,7 @@ typedef struct {
 
 int rand_int(int n);
 double rand_double();
+int random_number(int min_num, int max_num);
 void malloc_buffers(
 	int components, int faces,
 	GLfloat **position_data, GLfloat **normal_data, GLfloat **uv_data);
