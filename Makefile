@@ -4,7 +4,7 @@ CFLAGS=-std=c99 -O3
 EXE=cubious
 SERVEXE=server
 SERVFLAGS=-lm -lpthread -ldl
-CLIENTFLAGS=-lglfw3 -lpng -lGLEW -lGL -lGLU -lm -lpthread -ldl -lX11 -lXxf86vm -lXrandr -lXi
+FLAGS=-lglfw -lpng -lGLEW -lGL -lGLU -lm -lpthread -ldl -lX11 -lXxf86vm -lXrandr -lXi
 CC=gcc
 
 all: main
@@ -19,7 +19,7 @@ server: sqlite3.o server.o
 	$(CC) $(CFLAGS) server.o sqlite3.o -o $(SERVEXE)  $(SERVFLAGS)
 	
 main: client sqlite3.o
-	$(CC) $(CFLAGS) main.o util.o noise.o map.o db.o client.o sqlite3.o -o $(EXE) $(LIBRARY) -lglfw3 -lpng -lGLEW -lGL -lGLU -lm -lpthread -ldl -lX11 -lXxf86vm -lXrandr -lXi
+	$(CC) $(CFLAGS) main.o util.o noise.o map.o db.o client.o sqlite3.o -o $(EXE) $(LIBRARY) $(FLAGS)
 
 client: 
 	$(CC) $(CFLAGS) $(INCLUDE) -c -o main.o src/main.c
